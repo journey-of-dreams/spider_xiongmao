@@ -5,6 +5,7 @@ from xiongmao.items import ComicsItem
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from redis import Redis
+import re
 
 
 class YinghuaSpider(CrawlSpider):
@@ -12,24 +13,39 @@ class YinghuaSpider(CrawlSpider):
     allowed_domains = ['www.dmh8.com']
 
     conn = Redis(host='127.0.0.1', port=6379)
+
     def start_requests(self):
         yield Request(url=f'http://www.dmh8.com/view/5020.html', callback=self.parse_item)
 
     # start_urls = ['http://www.dmh8.com']
     #
     # link = LinkExtractor(allow=r'/view/\d+.html')
-    # # rules元组中存放的是不同的规则解析器（封装好了某种解析规则)
     # rules = (
-    #     # 规则解析器：可以将连接提取器提取到的所有连接表示的页面进行指定规则（回调函数）的解析
     #     Rule(link, callback='parse_item', follow=False),
     # )
 
     def parse_item(self, response: HtmlResponse):
         detail_items = response.xpath('//div[@id="playlist1"]/ul/li')
         comics_item = ComicsItem()
-        comics_item["title"] = response.xpath('//h1[@class="title]').extract_first()
-        comics_item["rating"] = response.xpath('//div[@id="rating"]/div[@class="branch"]').extract_first()
-        time_date = response.xpath(('//div[@class="data hidden-sm"]/span[@class="text-red"]/text')).extract_first()
+        comics_item["title"] = response.xpath('//h1[@class="title"]/text()').extract_first()
+        comics_item["rating"] = response.xpath('//div[@id="rating"]/span[@class="branch"]/text()').extract_first()
+        time_date = response.xpath(
+            ('//p[@class="data hidden-sm"]//span[@class="text-red"]/text()')).extract_first().split("/")
+        comics_item["newJi"] = time_date[0]
+        comics_item["newDate"] = time_date[1]
+        comics_item["intro"] = response.xpath('//span[@class="data" and @style="display"]/p/text()').extract_first()
+        comics_item["imgSrc"] = response.xpath('//div[@class="myui-content__thumb"]//img/@data-original').extract_first()
+        detail_content = response.xpath('//div[@class="myui-content__detail"]').extract_first()
+        sort = re.compile(r'分类：</span><a.*?>(.*?)</a>', re.S)
+        year = re.compile(r'年份：</span><a.*?>(.*?)</a>', re.S)
+        comics_item["sort"] = re.findall(sort, detail_content)[0]
+        comics_item["year"] = re.findall(year, detail_content)[0].strip()
+        print(comics_item)
+        try:
+            if self.link_list:
+                self.link_list.clear()
+        except Exception as e:
+            self.link_list = []
 
         for detail_item in detail_items:
             detail_url = detail_item.xpath('./a/@href').extract_first()
@@ -37,12 +53,18 @@ class YinghuaSpider(CrawlSpider):
             # 将详情页的url存入redis的set中
             ex = self.conn.sadd('urls', url)
             if ex == 1:
-                print('该url没有被爬取过，可以进行数据的爬取')
-                yield Request(url=url, callback=self.parse_detail,cb_kwargs={'item':comics_item})
+                print(url)
+                yield Request(url=url, callback=self.parse_detail, cb_kwargs={'item': comics_item})
             else:
                 print('数据还没有更新，暂无新数据可爬取！')
 
-    def parse_detail(self, response: HtmlResponse,**kwargs):
+    def parse_detail(self, response: HtmlResponse, **kwargs):
+        print("这里是进不来吗")
         comics_item = kwargs['item']
-
+        bb = re.compile(r'vod_data".*"url":"(.*?)"', re.S)
+        link = re.findall(bb, response.text)[0].replace('\\', '')[0]
+        ji = response.xpath('//a[@class="btn btn-warm"]/text()').extract_first()
+        self.link_list.append({"ji": ji, "link": link})
+        comics_item["linkLists"] = self.link_list
+        print(comics_item)
         yield comics_item

@@ -12,11 +12,8 @@ BOT_NAME = 'xiongmao'
 SPIDER_MODULES = ['xiongmao.spiders']
 NEWSPIDER_MODULE = 'xiongmao.spiders'
 
-DB_HOST = '127.0.0.1'
-DB_PORT = 3306
-DB_USER = 'root'
-DB_PASS = '123456'
-DB_NAME = 'xiongmao'
+MONGO_HOST = '127.0.0.1'
+MONGO_PORT = 27017
 
 LOG_LEVEL = 'ERROR'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -73,7 +70,7 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'xiongmao.pipelines.DbPipeline': 300,
+   'xiongmao.pipelines.MongoDBPipeline': 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
