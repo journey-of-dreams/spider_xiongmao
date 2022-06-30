@@ -15,7 +15,7 @@ class YinghuaSpider(CrawlSpider):
     conn = Redis(host='127.0.0.1', port=6379)
 
     def start_requests(self):
-        yield Request(url=f'http://www.dmh8.com/view/5020.html', callback=self.parse_item)
+        yield Request(url=f'http://www.dmh8.com/view/6024.html', callback=self.parse_item)
 
     # start_urls = ['http://www.dmh8.com']
     #
@@ -33,8 +33,9 @@ class YinghuaSpider(CrawlSpider):
             ('//p[@class="data hidden-sm"]//span[@class="text-red"]/text()')).extract_first().split("/")
         comics_item["newJi"] = time_date[0]
         comics_item["newDate"] = time_date[1]
-        comics_item["intro"] = response.xpath('//span[@class="data" and @style="display"]/p/text()').extract_first()
-        comics_item["imgSrc"] = response.xpath('//div[@class="myui-content__thumb"]//img/@data-original').extract_first()
+        comics_item["intro"] = response.xpath('//span[@class="data" and @style]/p/text() | //span[@class="data" and @style]/text()').extract_first().strip().replace(u'\u3000', u'').replace(u'\xa0', u'')
+        comics_item["imgSrc"] = response.xpath(
+            '//div[@class="myui-content__thumb"]//img/@data-original').extract_first()
         detail_content = response.xpath('//div[@class="myui-content__detail"]').extract_first()
         sort = re.compile(r'分类：</span><a.*?>(.*?)</a>', re.S)
         year = re.compile(r'年份：</span><a.*?>(.*?)</a>', re.S)
@@ -52,17 +53,18 @@ class YinghuaSpider(CrawlSpider):
             url = response.urljoin(detail_url)
             # 将详情页的url存入redis的set中
             ex = self.conn.sadd('urls', url)
-            if ex == 1:
-                print(url)
-                yield Request(url=url, callback=self.parse_detail, cb_kwargs={'item': comics_item})
-            else:
-                print('数据还没有更新，暂无新数据可爬取！')
+            # if ex == 1:
+            # print(url)
+            yield Request(url=url, callback=self.parse_detail, cb_kwargs={'item': comics_item})
+            # else:
+            print('数据还没有更新，暂无新数据可爬取！')
 
     def parse_detail(self, response: HtmlResponse, **kwargs):
-        print("这里是进不来吗")
+        print(response.url)
         comics_item = kwargs['item']
         bb = re.compile(r'vod_data".*"url":"(.*?)"', re.S)
-        link = re.findall(bb, response.text)[0].replace('\\', '')[0]
+        link = re.findall(bb, response.text)[0].replace('\\', '')
+        print(link)
         ji = response.xpath('//a[@class="btn btn-warm"]/text()').extract_first()
         self.link_list.append({"ji": ji, "link": link})
         comics_item["linkLists"] = self.link_list

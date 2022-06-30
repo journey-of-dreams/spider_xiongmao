@@ -19,19 +19,22 @@ class MongoDBPipeline(object):
         return cls(host, port)
 
     def __init__(self, host, port):
+        print("初始化是佛触发")
         client = pymongo.MongoClient(host, port)
         db = client['xiongmao']
         self.Yinghua_lists = db['Yinghua_lists']
 
         self.yinghua_data = []
 
-    # def close_spider(self, spider):
-    #     if len(self.data) > 0:
-    #         self._write_to_db()
-    #     self.conn.close()
-    #     pass
+    def close_spider(self, spider):
+        if len(self.yinghua_data) > 0:
+            self.insert_item(self.Yinghua_lists, self.yinghua_data)
+            self.yinghua_data.clear()
+        pass
 
     def process_item(self, item, spider):
+        print("_____________________________________________________-")
+        print(item)
         if spider.name == 'yinghua':
             self.yinghua_data.append(dict(item))
             if len(self.yinghua_data) == 100:
@@ -43,6 +46,6 @@ class MongoDBPipeline(object):
     @staticmethod
     def insert_item(collection, item):
         try:
-            collection.insert_many(dict(item))
+            collection.insert_many(item)
         except DuplicateKeyError:
             pass
