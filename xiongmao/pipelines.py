@@ -34,11 +34,11 @@ class MongoDBPipeline(object):
 
     def process_item(self, item, spider):
         print("_____________________________________________________-")
-        print(item)
         if spider.name == 'yinghua':
             self.yinghua_data.append(dict(item))
             if len(self.yinghua_data) == 100:
                 self.insert_item(self.Yinghua_lists, self.yinghua_data)
+                print("新增100条")
                 self.yinghua_data.clear()
         # 将item交给下一个管道类，推荐每一个process_item都return item
         return item
