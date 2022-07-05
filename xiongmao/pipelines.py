@@ -36,7 +36,7 @@ class MongoDBPipeline(object):
         print("_____________________________________________________-")
         if spider.name == 'yinghua':
             self.yinghua_data.append(dict(item))
-            if len(self.yinghua_data) == 100:
+            if len(self.yinghua_data) == 1:
                 self.insert_item(self.Yinghua_lists, self.yinghua_data)
                 print("新增100条")
                 self.yinghua_data.clear()

@@ -20,5 +20,6 @@ class ComicsItem(scrapy.Item):
     newJi = scrapy.Field()  # 最新一集
     newDate = scrapy.Field()  # 更新时间
     linkLists = scrapy.Field()  # 视频链接列表
+    total = scrapy.Field()  # 总集数
 
     pass
