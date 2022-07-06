@@ -49,3 +49,10 @@ class MongoDBPipeline(object):
             collection.insert_many(item)
         except DuplicateKeyError:
             pass
+
+    @staticmethod
+    def update_item(collection, item):
+        try:
+            collection.update_one({"title":item.title},{"$set":{"total":item.total},"$push":{"linkList":item.linkLists}})
+        except DuplicateKeyError:
+            pass

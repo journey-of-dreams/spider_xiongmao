@@ -15,19 +15,21 @@ class YinghuaSpider(CrawlSpider):
 
     conn = Redis(host='127.0.0.1', port=6379)
 
-    def start_requests(self):
-        yield Request(url=f'http://www.dmh8.com/view/6024.html', callback=self.parse_item)
+    # def start_requests(self):
+    #     yield Request(url=f'http://www.dmh8.com/view/6024.html', callback=self.parse_item)
 
-    # start_urls = ['http://www.dmh8.com']
-    #
-    # link = LinkExtractor(allow=r'/view/\d+.html')
-    # rules = (
-    #     Rule(link, callback='parse_item', follow=False),
-    # )
+    start_urls = ['http://www.dmh8.com']
+
+    link = LinkExtractor(allow=r'/view/\d+.html')
+    rules = (
+        Rule(link, callback='parse_item', follow=False),
+    )
 
     def parse_item(self, response: HtmlResponse):
-        detail_items = response.xpath('//div[@id="playlist1"]/ul/li')
-        # detail_items = max(len(detail_items))
+        d1 = response.xpath('//div[@id="playlist1"]/ul/li')
+        d2 = response.xpath('//div[@id="playlist2"]/ul/li')
+        d3 = response.xpath('//div[@id="playlist3"]/ul/li')
+        detail_items = max(d1, d2, d3,key=len)
         comics_item = ComicsItem()
         comics_item["total"] = len(detail_items)
         comics_item["title"] = response.xpath('//h1[@class="title"]/text()').extract_first()
@@ -36,6 +38,7 @@ class YinghuaSpider(CrawlSpider):
             ('//p[@class="data hidden-sm"]//span[@class="text-red"]/text()')).extract_first().split("/")
         comics_item["newJi"] = time_date[0]
         comics_item["newDate"] = time_date[1]
+        comics_item["linkLists"] = []
         try:
             comics_item["intro"] = response.xpath(
                 '//span[@class="data" and @style]/p/span/text() | //span[@class="data" and @style]/p/text() | //span[@class="data" and @style]/text()').extract_first().strip().replace(
@@ -77,6 +80,6 @@ class YinghuaSpider(CrawlSpider):
         ji = response.xpath('//a[@class="btn btn-warm"]/text()').extract_first()
         # self.link_list.append({"ji": ji, "link": link})
         # comics_item["linkLists"] = self.link_list
-        list(comics_item["linkLists"]).append({"ji": ji, "link": link})
+        comics_item["linkLists"].append({"ji": ji, "link": link})
         if len(comics_item["linkLists"]) == comics_item["total"]:
             yield comics_item
