@@ -14,22 +14,28 @@ class YinghuaSpider(CrawlSpider):
     allowed_domains = ['www.dmh8.com']
 
     conn = Redis(host='127.0.0.1', port=6379)
+    count = 0
+    def start_requests(self):
+        try:
+            for i in range(1, 10000):
+                yield Request(url=f'http://www.dmh8.com/view/{i}.html', callback=self.parse_item)
+        except Exception as e:
+            print("数据爬取完毕")
 
-    # def start_requests(self):
-    #     yield Request(url=f'http://www.dmh8.com/view/6024.html', callback=self.parse_item)
-
-    start_urls = ['http://www.dmh8.com']
-
-    link = LinkExtractor(allow=r'/view/\d+.html')
-    rules = (
-        Rule(link, callback='parse_item', follow=False),
-    )
+    # start_urls = ['http://www.dmh8.com']
+    #
+    # link = LinkExtractor(allow=r'/view/\d+.html')
+    # rules = (
+    #     Rule(link, callback='parse_item', follow=True),
+    # )
 
     def parse_item(self, response: HtmlResponse):
+        self.count += 1
+        print(f"共计{str(self.count)}部动漫")
         d1 = response.xpath('//div[@id="playlist1"]/ul/li')
         d2 = response.xpath('//div[@id="playlist2"]/ul/li')
         d3 = response.xpath('//div[@id="playlist3"]/ul/li')
-        detail_items = max(d1, d2, d3,key=len)
+        detail_items = max(d1, d2, d3, key=len)
         comics_item = ComicsItem()
         comics_item["total"] = len(detail_items)
         comics_item["title"] = response.xpath('//h1[@class="title"]/text()').extract_first()
@@ -41,7 +47,7 @@ class YinghuaSpider(CrawlSpider):
         comics_item["linkLists"] = []
         try:
             comics_item["intro"] = response.xpath(
-                '//span[@class="data" and @style]/p/span/text() | //span[@class="data" and @style]/p/text() | //span[@class="data" and @style]/text()').extract_first().strip().replace(
+                '//span[@class="data" and @style]/p/span/text() | //span[@class="data" and @style]/p/text() | //span[@class="data" and @style]/text() | //span[@class="data" and @style]/span/text()').extract_first().strip().replace(
                 u'\u3000', u'').replace(u'\xa0', u'')
         except Exception as e:
             print(response.url)
@@ -70,7 +76,8 @@ class YinghuaSpider(CrawlSpider):
                 yield Request(url=url, callback=self.parse_detail,
                               cb_kwargs={'item': comics_item})
             else:
-                print('数据还没有更新，暂无新数据可爬取！')
+                # print('数据还没有更新，暂无新数据可爬取！')
+                pass
 
     def parse_detail(self, response: HtmlResponse, **kwargs):
         comics_item = kwargs['item']
